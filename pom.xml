@@ -12,13 +12,13 @@
   <parent>
     <groupId>io.micronaut.platform</groupId>
     <artifactId>micronaut-parent</artifactId>
-    <version>4.1.2</version>
+    <version>4.1.4</version>
   </parent>
   <properties>
     <packaging>jar</packaging>
     <jdk.version>17</jdk.version>
     <release.version>17</release.version>
-    <micronaut.version>4.1.2</micronaut.version>
+    <micronaut.version>4.1.4</micronaut.version>
     <micronaut.test.resources.enabled>true</micronaut.test.resources.enabled>
     <micronaut.aot.enabled>false</micronaut.aot.enabled>
     <micronaut.aot.packageName>com.testcontainers.demo.aot.generated</micronaut.aot.packageName>
@@ -190,7 +190,7 @@
       <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
-        <version>2.39.0</version>
+        <version>2.40.0</version>
         <configuration>
           <java>
             <importOrder/>
