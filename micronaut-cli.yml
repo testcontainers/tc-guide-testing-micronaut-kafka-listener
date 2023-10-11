@@ -1,0 +1,6 @@
+applicationType: default
+defaultPackage: com.testcontainers.demo
+testFramework: junit
+sourceLanguage: java
+buildTool: maven
+features: [app-name, assertj, awaitility, data, data-jpa, http-client-test, java, java-application, jdbc-hikari, junit, kafka, logback, maven, maven-enforcer-plugin, micronaut-aot, mysql, netty-server, properties, readme, serialization-jackson, shade, testcontainers, test-resources]

@@ -1,0 +1,222 @@
+---
+title: "Testing Micronaut Kafka Listener using Testcontainers"
+date: 2023-10-12T09:39:58+05:30
+draft: false
+description: This guide will explain how to test Micronaut Kafka Listeners using Testcontainers.
+repo: https://github.com/testcontainers/tc-guide-testing-micronaut-kafka-listener
+languages:
+  - Java
+tags:
+  - micronaut
+  - mysql
+  - kafka
+---
+:toc:
+:toclevels: 2
+:codebase: https://raw.githubusercontent.com/testcontainers/tc-guide-testing-micronaut-kafka-listener/main
+
+In this guide, you will learn how to:
+
+* Create a Micronaut application with Kafka integration
+* Implement a Kafka Listener and persist data in MySQL database
+* Test the Kafka Listener using Testcontainers and Awaitility
+* Simplify testing with Micronaut Test Resources
+
+== Prerequisites
+* Java 17+
+* Your favorite IDE (Intellij IDEA, Eclipse, NetBeans, VS Code)
+* A Docker environment supported by Testcontainers https://www.testcontainers.org/supported_docker_environment/
+
+== What we are going to achieve in this guide
+We are going to create a Micronaut project with *Kafka*, *Micronaut Data JPA*, *MySQL* and *Awaitility*,
+where we implement a Kafka Listeners which receives an event payload and persists the event data in the database.
+Then we will test this Kafka Listener using the Testcontainers Kafka
+and MySQL modules in conjunction with http://www.awaitility.org/[Awaitility].
+
+== Getting Started
+You can create a new Spring Boot project from https://micronaut.io/launch[Micronaut Launch] by selecting the
+*kafka*, *data-jpa*, *mysql*, *awaitility*, *assertj*, and *testcontainers* features.
+
+We are going to use the http://www.awaitility.org/[Awaitility] library for asserting the expectations of an asynchronous process flow.
+
+If you have selected Gradle as the build tool, then the generated *build.gradle* file should have the following dependencies.
+
+[source,groovy,indent=0]
+----
+include::{codebase}/build.gradle[lines="14..30"]
+----
+
+We are going to implement a Kafka Listener listening to a topic named *product-price-changes*.
+Upon receiving a message, we are going to extract product code and price from the event payload
+and update the price of that product in the MySQL database.
+
+== Create JPA entity
+First, let us start with creating a JPA entity *Product.java*.
+
+[source,java]
+----
+include::{codebase}/src/main/java/com/testcontainers/demo/Product.java[]
+----
+
+== Create Micronaut Data JPA repository
+Let us create a Micronaut Data JPA repository interface for the *Product* entity and
+add methods to find a product for a given code and update the price for the given product code as follows:
+
+[source,java]
+----
+include::{codebase}/src/main/java/com/testcontainers/demo/ProductRepository.java[]
+----
+
+== Create the event payload java bean
+Let us create a domain object named *ProductPriceChangedEvent* as a record representing the structure of the event payload
+that we are going to receive from the Kafka topic.
+
+[source,java]
+----
+include::{codebase}/src/main/java/com/testcontainers/demo/ProductPriceChangedEvent.java[]
+----
+
+The *@Serdeable* annotation at the type level in your source code to allow the type to be serialized or deserialized.
+
+
+== Implement Kafka Listener
+Finally, let us implement the Kafka listener which handles the messages received from the *product-price-changes* topic
+and updates the product price in the database.
+
+To listen to Kafka messages, you can use the *@KafkaListener* annotation to define a message listener.
+
+[source,java]
+----
+include::{codebase}/src/main/java/com/testcontainers/demo/ProductPriceChangedEventHandler.java[]
+----
+
+* The *@Topic* annotation is again used to indicate which topic(s) to subscribe to.
+* The *@KafkaListener* is used with *offsetReset* set to *EARLIEST* which makes the listener start listening to messages from the beginning of the partition
+
+Let us assume that there is an agreement between the sender and receiver that the payload will be sent in the following JSON format:
+
+[source,json]
+----
+{
+  "productCode": "P100",
+  "price": 25.00
+}
+----
+
+== Write Test for Kafka Listener
+We are going to write a test for the Kafka event listener *ProductPriceChangedEventHandler*
+by sending a message to the product-price-changes topic and verify the updated product price in the database.
+
+But to successfully start our Micronaut context, we need Kafka and the MySQL database up and running
+and configure the Spring context to talk to them.
+
+Create a @KafkaClient to simplify publishing events in the test.
+
+[source,java]
+----
+include::{codebase}/src/test/java/com/testcontainers/demo/ProductPriceChangesClient.java[]
+----
+
+* The @KafkaClient annotation is used to designate this interface as a client
+* The @Topic annotation indicates which topics the @KafkaClient should be published to.
+* The Kafka key can be specified by providing a parameter annotated with @KafkaKey. If no such parameter is specified the record is sent with a null key.
+
+We will use the Testcontainers library to spin up a Kafka and the MySQL database instances as Docker containers
+and configure the application to talk to them as follows:
+
+[source,java]
+----
+include::{codebase}/src/test/java/com/testcontainers/demo/ProductPriceChangedEventHandlerTest.java[]
+----
+
+Let us understand what is going on in this test.
+
+* Annotated the class with *@MicronautTest* so the Micronaut framework will initialize the application context and the embedded server. By default, each *@Test* method will be wrapped in a transaction that will be rolled back when the test finishes. This behaviour is changed by setting transaction to false.
+* Annotate the class with *@Property* to supply the driver class name configuration to the test.
+* We have configured the Testcontainers special JDBC URL to spin up a MySQL container and configure it as a DataSource with Micronaut application context.
+* Classes that implement *TestPropertyProvider* must use this annotation to create a single class instance for all tests (not necessary in Spock tests).
+* When you need dynamic properties definition, implement the *TestPropertyProvider* interface. Override the method *.getProperties()* and return the properties you want to expose to the application.
+* We have used the Testcontainers JUnit 5 Extension annotations *@Testcontainers* and *@Container* to spin up a Kafka container and registered the *bootstrap-servers* location using *TestPropertyProvider* mechanism.
+* We have created a Product record in the database before sending the event.
+* During the test, we sent a message to the *product-price-changes* topic using *ProductPriceChangesClient* with *productCode* as key and *ProductPriceChangedEvent* instance as value.
+* As Kafka message processing is an asynchronous process, we are using the Awaitility library to check whether the product price is updated in the database to the expected value or not with an interval of 3 seconds waiting up to a maximum of 10 seconds. If the message is consumed and processed within 10 seconds the test will pass, otherwise the test will fail.
+
+Now you can run the tests.
+
+== Testing Kafka integration with Test Resources
+Micronaut Test Resources adds support for managing external resources which are required during development or testing.
+We are going to simplify testing with https://micronaut-projects.github.io/micronaut-test-resources/latest/guide/[Micronaut Test Resources].
+
+* You can remove Testcontainers dependencies from *pom.xml* or *build.gradle*
+* Add the Micronaut Test Resources support.
+
+If you are using Maven, then set the property *micronaut.test.resources.enabled* to *true*
+and add the following dependency in pom.xml.
+
+[source,xml]
+----
+<properties>
+    ...
+    <micronaut.test.resources.enabled>true</micronaut.test.resources.enabled>
+</properties>
+
+<dependencies>
+    <dependency>
+        <groupId>io.micronaut.testresources</groupId>
+        <artifactId>micronaut-test-resources-client</artifactId>
+        <scope>provided</scope>
+    </dependency>
+</dependencies>
+----
+
+If you are using Gradle, then add the *io.micronaut.test-resources* plugin in *build.gradle*.
+
+[source,groovy]
+----
+plugins {
+    ...
+    id("io.micronaut.test-resources") version "4.0.3"
+}
+----
+
+When the application is started locally, either under test or by running the application,
+resolution of the property kafka.bootstrap.servers is detected, and the Test Resources service
+will start a local Kafka docker container, and inject the properties required to use this as the broker.
+
+Thanks to Test Resources, we can simplify the test as follows:
+
+[source,java]
+----
+include::{codebase}/src/test/java/com/testcontainers/demo/ProductPriceChangedEventHandlerTestResourcesTest.java[]
+----
+
+If you run the tests, you will see a MySQL container and Kafka container being started by
+Test Resources through integration with Testcontainers to provide throwaway containers for testing.
+
+== Run tests
+
+[source,shell]
+----
+# If you are using Maven
+./mvnw test
+
+# If you are using Gradle
+./gradlew test
+----
+
+You should see the Kafka and MySQL Docker containers are started and all tests should PASS.
+You can also notice that after the tests are executed, the containers are stopped and removed automatically.
+
+== Summary
+We have learned how to test Kafka message listeners using a real Kafka instance with Testcontainers
+and verified the expected result using Awaitility. If we are using Kafka and MySQL in production,
+it is often the best approach to test with real Kafka and MySQL instances in order to allow our test suite to provide us
+with more confidence about the correctness of our code.
+
+To learn more about Testcontainers visit http://testcontainers.com
+
+== Further Reading
+* https://testcontainers.com/guides/testing-rest-api-integrations-in-micronaut-apps-using-wiremock/[Testing REST API integrations in Micronaut applications using WireMock]
+* https://testcontainers.com/guides/testing-spring-boot-kafka-listener-using-testcontainers/[Testing Spring Boot Kafka Listener using Testcontainers]
+* https://testcontainers.com/guides/testing-spring-boot-rest-api-using-testcontainers/[Getting started with Testcontainers in a Java Spring Boot Project]
+* http://www.awaitility.org/[Awaitility]
