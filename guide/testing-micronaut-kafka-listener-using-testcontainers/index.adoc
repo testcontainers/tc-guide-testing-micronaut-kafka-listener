@@ -1,6 +1,6 @@
 ---
 title: "Testing Micronaut Kafka Listener using Testcontainers"
-date: 2023-10-12T09:39:58+05:30
+date: 2023-10-11T09:39:58+05:30
 draft: false
 description: This guide will explain how to test Micronaut Kafka Listeners using Testcontainers.
 repo: https://github.com/testcontainers/tc-guide-testing-micronaut-kafka-listener
