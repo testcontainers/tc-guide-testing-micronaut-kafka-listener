@@ -34,7 +34,7 @@ Then we will test this Kafka Listener using the Testcontainers Kafka
 and MySQL modules in conjunction with http://www.awaitility.org/[Awaitility].
 
 == Getting Started
-You can create a new Spring Boot project from https://micronaut.io/launch[Micronaut Launch] by selecting the
+You can create a new Micronaut project from https://micronaut.io/launch[Micronaut Launch] by selecting the
 *kafka*, *data-jpa*, *mysql*, *awaitility*, *assertj*, and *testcontainers* features.
 
 We are going to use the http://www.awaitility.org/[Awaitility] library for asserting the expectations of an asynchronous process flow.
@@ -43,7 +43,7 @@ If you have selected Gradle as the build tool, then the generated *build.gradle*
 
 [source,groovy,indent=0]
 ----
-include::{codebase}/build.gradle[lines="14..30"]
+include::{codebase}/build.gradle[lines="16..32"]
 ----
 
 We are going to implement a Kafka Listener listening to a topic named *product-price-changes*.
@@ -105,21 +105,21 @@ Let us assume that there is an agreement between the sender and receiver that th
 
 == Write Test for Kafka Listener
 We are going to write a test for the Kafka event listener *ProductPriceChangedEventHandler*
-by sending a message to the product-price-changes topic and verify the updated product price in the database.
+by sending a message to the *product-price-changes* topic and verify the updated product price in the database.
 
 But to successfully start our Micronaut context, we need Kafka and the MySQL database up and running
 and configure the Spring context to talk to them.
 
-Create a @KafkaClient to simplify publishing events in the test.
+Create a *@KafkaClient* to simplify publishing events in the test.
 
 [source,java]
 ----
 include::{codebase}/src/test/java/com/testcontainers/demo/ProductPriceChangesClient.java[]
 ----
 
-* The @KafkaClient annotation is used to designate this interface as a client
-* The @Topic annotation indicates which topics the @KafkaClient should be published to.
-* The Kafka key can be specified by providing a parameter annotated with @KafkaKey. If no such parameter is specified the record is sent with a null key.
+* The *@KafkaClient* annotation is used to designate this interface as a client
+* The *@Topic* annotation indicates which topics the *@KafkaClient* should be published to.
+* The Kafka key can be specified by providing a parameter annotated with *@KafkaKey*. If no such parameter is specified, the record is sent with a null key.
 
 We will use the Testcontainers library to spin up a Kafka and the MySQL database instances as Docker containers
 and configure the application to talk to them as follows:
