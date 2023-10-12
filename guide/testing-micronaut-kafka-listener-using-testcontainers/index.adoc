@@ -144,14 +144,14 @@ Let us understand what is going on in this test.
 Now you can run the tests.
 
 == Testing Kafka integration with Test Resources
-Micronaut Test Resources adds support for managing external resources which are required during development or testing.
-We are going to simplify testing with https://micronaut-projects.github.io/micronaut-test-resources/latest/guide/[Micronaut Test Resources].
+*Micronaut Test Resources* adds support for managing external resources which are required during development or testing.
+Let's see how we can simplify testing with https://micronaut-projects.github.io/micronaut-test-resources/latest/guide/[Micronaut Test Resources].
 
-* You can remove Testcontainers dependencies from *pom.xml* or *build.gradle*
+* You can remove Testcontainers dependencies from *pom.xml* or *build.gradle*. Micronaut Test Resources still uses Testcontainers under the hood.
 * Add the Micronaut Test Resources support.
 
-If you are using Maven, then set the property *micronaut.test.resources.enabled* to *true*
-and add the following dependency in pom.xml.
+If you are using Maven, then add the following dependency
+and set the property *micronaut.test.resources.enabled* to *true* in *pom.xml*.
 
 [source,xml]
 ----
