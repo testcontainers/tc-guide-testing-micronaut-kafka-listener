@@ -3,7 +3,7 @@ plugins {
     id("io.micronaut.application") version "4.1.1"
     id("io.micronaut.test-resources") version "4.1.1"
     id("io.micronaut.aot") version "4.1.1"
-    id("com.diffplug.spotless") version "6.22.0"
+    id("com.diffplug.spotless") version "6.23.3"
 }
 
 version = "0.1"
